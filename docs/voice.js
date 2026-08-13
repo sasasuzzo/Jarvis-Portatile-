@@ -6,6 +6,10 @@
    ============================================================ */
 
 const JarvisVoice = (() => {
+  // Stesso Worker usato per la chat: gestisce anche l'endpoint TTS (Google TTS,
+  // stessa voce del JARVIS desktop). Deve combaciare con AI_ENDPOINT in ai.js.
+  const TTS_ENDPOINT = "https://jarvis-portatile.salvatorecaciopppo4000.workers.dev/api/chat";
+
   const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
   let recognition = null;
   let listening = false;
@@ -91,26 +95,24 @@ const JarvisVoice = (() => {
     stopListening();
   }
 
-  // ---- TTS ----
+  // ---- TTS: voce cloud (stessa del JARVIS desktop) con fallback alla voce di sistema ----
   let currentUtterance = null;
-  let voceScelta = null;
   let vociCaricate = false;
+  let voceScelta = null;
+  let audioQueue = [];
+  let audioCorrente = null;
+  let interrotto = false;
 
   function scegliVoceMigliore() {
     const voci = speechSynthesis.getVoices();
     if (!voci.length) return null;
-
     const italiane = voci.filter((v) => v.lang && v.lang.toLowerCase().startsWith("it"));
     const pool = italiane.length ? italiane : voci;
-
-    // Preferisci voci di rete (di solito migliori) e non "Compact"/"Eloquence"
     const scarti = /compact|eloquence/i;
     const buone = pool.filter((v) => !scarti.test(v.name));
     const direzione = buone.length ? buone : pool;
-
     const premium = direzione.find((v) => /enhanced|premium|neural|siri/i.test(v.name));
     const nonLocali = direzione.find((v) => v.localService === false);
-
     return premium || nonLocali || direzione[0];
   }
 
@@ -125,11 +127,12 @@ const JarvisVoice = (() => {
     speechSynthesis.onvoiceschanged = caricaVoci;
   }
 
-  function speak(testo, onEnd) {
-    if (!("speechSynthesis" in window)) return;
-    interrupt();
+  function speakWebSpeech(testo, onEnd) {
+    if (!("speechSynthesis" in window)) {
+      onEnd && onEnd();
+      return;
+    }
     if (!vociCaricate) caricaVoci();
-
     const utter = new SpeechSynthesisUtterance(testo);
     utter.lang = "it-IT";
     if (voceScelta) utter.voice = voceScelta;
@@ -143,7 +146,54 @@ const JarvisVoice = (() => {
     speechSynthesis.speak(utter);
   }
 
+  async function playQueue(onEnd) {
+    for (const b64 of audioQueue) {
+      if (interrotto) break;
+      await new Promise((resolve) => {
+        const audio = new Audio("data:audio/mpeg;base64," + b64);
+        audioCorrente = audio;
+        audio.onended = resolve;
+        audio.onerror = resolve;
+        audio.play().catch(resolve);
+      });
+    }
+    audioQueue = [];
+    audioCorrente = null;
+    if (!interrotto) onEnd && onEnd();
+  }
+
+  async function speak(testo, onEnd) {
+    interrupt();
+    interrotto = false;
+
+    if (!TTS_ENDPOINT || TTS_ENDPOINT.includes("TUO-WORKER")) {
+      speakWebSpeech(testo, onEnd);
+      return;
+    }
+
+    try {
+      const res = await fetch(TTS_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tts: testo }),
+      });
+      if (!res.ok) throw new Error("TTS HTTP " + res.status);
+      const data = await res.json();
+      if (!data.audio || !data.audio.length) throw new Error("Nessun audio ricevuto");
+      audioQueue = data.audio;
+      playQueue(onEnd);
+    } catch (e) {
+      speakWebSpeech(testo, onEnd); // fallback se il Worker/Google TTS non risponde
+    }
+  }
+
   function interrupt() {
+    interrotto = true;
+    if (audioCorrente) {
+      audioCorrente.pause();
+      audioCorrente = null;
+    }
+    audioQueue = [];
     if ("speechSynthesis" in window) speechSynthesis.cancel();
     currentUtterance = null;
   }

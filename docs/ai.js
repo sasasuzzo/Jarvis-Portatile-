@@ -13,7 +13,7 @@
 
 const JarvisAI = (() => {
   // <-- SOSTITUISCI con l'URL del tuo Cloudflare Worker proxy -->
-  const AI_ENDPOINT = "https://TUO-WORKER.workers.dev/api/chat";
+  const AI_ENDPOINT = "https://jarvis-portatile.salvatorecaciopppo4000.workers.dev/";
 
   const SYSTEM_PROMPT =
     "Sei J.A.R.V.I.S, l'assistente AI personale di Salvo. Rispondi in italiano, " +

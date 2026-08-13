@@ -13,13 +13,26 @@
 
 const JarvisAI = (() => {
   // <-- SOSTITUISCI con l'URL del tuo Cloudflare Worker proxy -->
-  const AI_ENDPOINT = "https://jarvis-portatile.salvatorecaciopppo4000.workers.dev/";
+  const AI_ENDPOINT = "https://TUO-WORKER.workers.dev/api/chat";
 
   const SYSTEM_PROMPT =
     "Sei J.A.R.V.I.S, l'assistente AI personale di Salvo. Rispondi in italiano, " +
     "in modo conciso, elegante e leggermente formale (come Jarvis in Iron Man), " +
     "rivolgendoti a lui come 'signore' quando ha senso. Questa è la versione " +
-    "tascabile (PWA), indipendente dal JARVIS desktop.";
+    "tascabile (PWA), indipendente dal JARVIS desktop. " +
+    "REGOLE DI FORMATO IMPORTANTI: rispondi SEMPRE in testo semplice, senza markdown " +
+    "(niente **grassetto**, niente asterischi, niente elenchi puntati con * o -, niente # per i titoli). " +
+    "Non ripetere o riformulare la domanda dell'utente prima di rispondere: vai dritto alla risposta.";
+
+  function pulisciMarkdown(testo) {
+    return testo
+      .replace(/\*\*(.*?)\*\*/g, "$1")
+      .replace(/\*(.*?)\*/g, "$1")
+      .replace(/^#{1,6}\s*/gm, "")
+      .replace(/^[-*]\s+/gm, "• ")
+      .replace(/\*/g, "")
+      .trim();
+  }
 
   async function chiedi(testoUtente, allegato) {
     const history = await JarvisMemory.getHistory();
@@ -44,7 +57,7 @@ const JarvisAI = (() => {
       });
       if (!res.ok) throw new Error("HTTP " + res.status);
       const data = await res.json();
-      const risposta = data.reply || "Non ho ricevuto una risposta valida dal server, signore.";
+      const risposta = pulisciMarkdown(data.reply || "Non ho ricevuto una risposta valida dal server, signore.");
 
       await JarvisMemory.pushHistory("user", testoUtente);
       await JarvisMemory.pushHistory("assistant", risposta);

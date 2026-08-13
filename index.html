@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>J.A.R.V.I.S Portable</title>
+
+<!-- PWA / iPhone -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="JARVIS">
+<meta name="theme-color" content="#000814">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+
+<link rel="stylesheet" href="css/jarvis.css">
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- ===== CERCHIO HUD CENTRALE ===== -->
+  <div class="hud-wrap">
+    <canvas id="hud" width="360" height="360"></canvas>
+    <div class="state-label" id="stateLabel">STANDBY</div>
+    <div class="state-sub" id="stateSub"></div>
+  </div>
+
+  <!-- ===== CONVERSAZIONE ===== -->
+  <div class="chat-panel" id="chatPanel">
+    <div class="msg jarvis"><span class="tag">JARVIS</span>Sistemi online. In attesa, signore.</div>
+  </div>
+
+  <!-- ===== ANTEPRIMA ALLEGATO ===== -->
+  <div class="attach-preview" id="attachPreview" hidden>
+    <img id="attachImg" alt="anteprima">
+    <span id="attachName"></span>
+    <button id="attachCancel" aria-label="Rimuovi allegato">✕</button>
+  </div>
+
+  <!-- ===== BARRA DI INPUT ===== -->
+  <div class="input-bar">
+    <button class="icon-btn" id="fileBtn" aria-label="Allega">📎</button>
+    <input id="textInput" type="text" placeholder="Scrivi qui..." autocomplete="off">
+    <button class="icon-btn" id="micBtn" aria-label="Microfono">🎤</button>
+
+    <div class="file-menu" id="fileMenu">
+      <button data-kind="file">📄 File</button>
+      <button data-kind="photo">🖼️ Foto</button>
+      <button data-kind="camera">📷 Fotocamera</button>
+    </div>
+    <input type="file" id="pickFile" hidden>
+    <input type="file" id="pickPhoto" accept="image/*" hidden>
+    <input type="file" id="pickCamera" accept="image/*" capture="environment" hidden>
+  </div>
+
+</div>
+
+<script src="js/memory.js"></script>
+<script src="js/hud.js"></script>
+<script src="js/voice.js"></script>
+<script src="js/files.js"></script>
+<script src="js/commands.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

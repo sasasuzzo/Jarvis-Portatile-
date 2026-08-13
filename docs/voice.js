@@ -93,14 +93,48 @@ const JarvisVoice = (() => {
 
   // ---- TTS ----
   let currentUtterance = null;
+  let voceScelta = null;
+  let vociCaricate = false;
+
+  function scegliVoceMigliore() {
+    const voci = speechSynthesis.getVoices();
+    if (!voci.length) return null;
+
+    const italiane = voci.filter((v) => v.lang && v.lang.toLowerCase().startsWith("it"));
+    const pool = italiane.length ? italiane : voci;
+
+    // Preferisci voci di rete (di solito migliori) e non "Compact"/"Eloquence"
+    const scarti = /compact|eloquence/i;
+    const buone = pool.filter((v) => !scarti.test(v.name));
+    const direzione = buone.length ? buone : pool;
+
+    const premium = direzione.find((v) => /enhanced|premium|neural|siri/i.test(v.name));
+    const nonLocali = direzione.find((v) => v.localService === false);
+
+    return premium || nonLocali || direzione[0];
+  }
+
+  function caricaVoci() {
+    if (!("speechSynthesis" in window)) return;
+    voceScelta = scegliVoceMigliore();
+    vociCaricate = !!voceScelta;
+  }
+
+  if ("speechSynthesis" in window) {
+    caricaVoci();
+    speechSynthesis.onvoiceschanged = caricaVoci;
+  }
 
   function speak(testo, onEnd) {
     if (!("speechSynthesis" in window)) return;
     interrupt();
+    if (!vociCaricate) caricaVoci();
+
     const utter = new SpeechSynthesisUtterance(testo);
     utter.lang = "it-IT";
-    utter.rate = 1.02;
-    utter.pitch = 0.9;
+    if (voceScelta) utter.voice = voceScelta;
+    utter.rate = 1.0;
+    utter.pitch = 1.0;
     utter.onend = () => {
       currentUtterance = null;
       onEnd && onEnd();
